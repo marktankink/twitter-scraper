@@ -3,6 +3,8 @@ package twitterscraper
 import (
 	"crypto/tls"
 	"errors"
+	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -171,6 +173,39 @@ func (s *Scraper) SetProxy(proxyAddr string) error {
 		return nil
 	}
 	return errors.New("only support http(s) or socks5 protocol")
+}
+
+// VerifyProxyConnection checks if the scraper is actually using the configured proxy
+func (s *Scraper) VerifyProxyConnection(expectedIP string) error {
+	// Use the scraper's own client
+	req, err := http.NewRequest("GET", "https://api.ipify.org?format=text", nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %v", err)
+	}
+
+	// Use the scraper's own client to make the request
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to get IP: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Read the response
+	actualIP, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read IP: %v", err)
+	}
+
+	// Extract just the IP part from the expected IP (remove port if present)
+	expectedIPOnly := strings.Split(expectedIP, ":")[0]
+	actualIPStr := strings.TrimSpace(string(actualIP))
+
+	// Compare IPs
+	if actualIPStr != expectedIPOnly {
+		return fmt.Errorf("scraper not using proxy IP! Expected: %s, Got: %s", expectedIPOnly, actualIPStr)
+	}
+
+	return nil
 }
 
 func (s *Scraper) SetUserAgent(userAgent string) {

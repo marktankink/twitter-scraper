@@ -1,5 +1,0 @@
-*.htm?
-*.json
-.idea/
-
-!.vscode/settings.json

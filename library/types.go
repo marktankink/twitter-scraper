@@ -33,6 +33,7 @@ type (
 
 	// Tweet type.
 	Tweet struct {
+		Bookmarks         int // added myself but does not work praperly
 		ConversationID    string
 		GIFs              []GIF
 		Hashtags          []string
@@ -92,6 +93,7 @@ type (
 	}
 
 	legacyTweet struct {
+		Bookmarks         int    `json:"bookmarks"`
 		ConversationIDStr string `json:"conversation_id_str"`
 		CreatedAt         string `json:"created_at"`
 		FavoriteCount     int    `json:"favorite_count"`
