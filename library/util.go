@@ -113,6 +113,12 @@ func getTweetTimeline(ctx context.Context, query string, maxTweetsNbr int, fetch
 		defer close(channel)
 		var nextCursor string
 		tweetsNbr := 0
+
+		// Try to load existing cursor for this query
+		if s, ok := ctx.Value("scraper").(*Scraper); ok {
+			nextCursor = s.LoadCursor(query)
+		}
+
 		for tweetsNbr < maxTweetsNbr {
 			select {
 			case <-ctx.Done():
@@ -141,6 +147,10 @@ func getTweetTimeline(ctx context.Context, query string, maxTweetsNbr int, fetch
 
 				if tweetsNbr < maxTweetsNbr {
 					nextCursor = next
+					// Save cursor after each batch
+					if s, ok := ctx.Value("scraper").(*Scraper); ok {
+						s.SaveCursor(query, nextCursor)
+					}
 					channel <- &TweetResult{Tweet: *tweet}
 				} else {
 					break

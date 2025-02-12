@@ -19,7 +19,7 @@ func TestClearGuestToken(t *testing.T) {
 	scraper := newTestScraper(false)
 
 	scraper.ClearGuestToken()
-	
+
 	if scraper.IsGuestToken() {
 		t.Error("Expected empty guestToken")
 	}

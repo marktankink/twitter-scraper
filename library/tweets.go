@@ -9,6 +9,8 @@ import (
 
 // GetTweets returns channel with tweets for a given user.
 func (s *Scraper) GetTweets(ctx context.Context, user string, maxTweetsNbr int) <-chan *TweetResult {
+	// Create new context with scraper
+	ctx = context.WithValue(ctx, "scraper", s)
 	return getTweetTimeline(ctx, user, maxTweetsNbr, s.FetchTweets)
 }
 

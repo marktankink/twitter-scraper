@@ -2,6 +2,7 @@ package twitterscraper
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -32,6 +34,8 @@ type Scraper struct {
 	userAgent      string
 	searchMode     SearchMode
 	wg             sync.WaitGroup
+	cursorTracker  map[string]string // maps username -> cursor
+	cursorMutex    sync.RWMutex      // protects cursorTracker
 }
 
 // SearchMode type
@@ -65,6 +69,50 @@ func New() *Scraper {
 			Timeout: DefaultClientTimeout,
 		},
 	}
+}
+
+func (s *Scraper) SaveCursor(username, cursor string) {
+	s.cursorMutex.Lock()
+	defer s.cursorMutex.Unlock()
+	if s.cursorTracker == nil {
+		s.cursorTracker = make(map[string]string)
+	}
+	s.cursorTracker[username] = cursor
+}
+
+func (s *Scraper) LoadCursor(username string) string {
+	s.cursorMutex.RLock()
+	defer s.cursorMutex.RUnlock()
+	if s.cursorTracker == nil {
+		return ""
+	}
+	return s.cursorTracker[username]
+}
+
+func (s *Scraper) SaveCursorsToFile(filename string) error {
+	s.cursorMutex.RLock()
+	defer s.cursorMutex.RUnlock()
+
+	data, err := json.MarshalIndent(s.cursorTracker, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filename, data, 0644)
+}
+
+func (s *Scraper) LoadCursorsFromFile(filename string) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	s.cursorMutex.Lock()
+	defer s.cursorMutex.Unlock()
+
+	return json.Unmarshal(data, &s.cursorTracker)
 }
 
 func (s *Scraper) setBearerToken(token string) {
